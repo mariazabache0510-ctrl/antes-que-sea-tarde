@@ -95,3 +95,41 @@ def test_no_guarda_nombre_con_html():
     _rows, errors = parse_xlsx(workbook_bytes([valid_row(nombre="<script>alert(1)</script>")]))
     assert errors
     assert all("<script>" not in error for error in errors)
+
+
+def test_acepta_titulo_en_la_segunda_fila_e_inasistencia_sin_documento():
+    workbook = Workbook()
+    sheet = workbook.active
+    sheet.append([None, None, None])
+    sheet.append(
+        [
+            None,
+            None,
+            "Nombre ",
+            "Programa ",
+            "Semestre",
+            "Promedio",
+            "Materias_perdidas",
+            "Inasistencia",
+            "Evaluaciones no presentadas",
+        ]
+    )
+    sheet.append(
+        [None, None, "Jose Hernesto Rojas", "Tecnologia en Desarrollo de Software", 2, "2.3", 2, 3, 2]
+    )
+    sheet.append([None, None, "Jose Hernesto Rojas", "Psicologia", 3, "3.1", 1, 3, 3])
+    buffer = BytesIO()
+    workbook.save(buffer)
+    rows, errors = parse_xlsx(buffer.getvalue())
+    assert rows == []
+    assert any("repetido" in error for error in errors)
+
+    sheet.delete_rows(4)
+    buffer = BytesIO()
+    workbook.save(buffer)
+    rows, errors = parse_xlsx(buffer.getvalue())
+    assert errors == []
+    assert rows[0]["documento"] == "AUTOJOSEHERNESTOROJAS"
+    assert rows[0]["inasistencias"] == 3
+    assert rows[0]["evaluaciones_no_presentadas"] == 2
+    assert rows[0]["promedio"] == __import__("decimal").Decimal("2.30")

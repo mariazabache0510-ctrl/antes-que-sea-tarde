@@ -18,6 +18,15 @@ REQUIRED_COLUMNS = (
     "inasistencias",
     "evaluaciones_no_presentadas",
 )
+_HEADER_ALIASES = {
+    "cedula": "documento",
+    "identificacion": "documento",
+    "numero_de_documento": "documento",
+    "nombres": "nombre",
+    "materias_perdida": "materias_perdidas",
+    "inasistencia": "inasistencias",
+    "evaluaciones_no_presentada": "evaluaciones_no_presentadas",
+}
 
 MAX_ROWS = 2000
 MAX_BYTES = 2 * 1024 * 1024
@@ -65,28 +74,33 @@ def _read_sheet(workbook) -> tuple[list[dict], list[str]]:
         return [], ["El archivo no tiene hojas."]
     sheet = workbook.worksheets[0]
     row_iter = sheet.iter_rows(values_only=True)
-    try:
-        header_row = next(row_iter)
-    except StopIteration:
+    headers, header_row_number = _find_headers(row_iter)
+    if headers is None:
         return [], ["El archivo no tiene la fila de columnas."]
 
-    headers = [_normalize_header(cell) for cell in header_row]
     errors = []
     for column in REQUIRED_COLUMNS:
+        if column == "documento":
+            continue
         if column not in headers:
             errors.append(f"Falta la columna obligatoria: {column}.")
         elif headers.count(column) > 1:
             errors.append(f"La columna {column} está repetida.")
+    if "documento" in headers and headers.count("documento") > 1:
+        errors.append("La columna documento está repetida.")
     if errors:
         return [], errors
 
-    index = {name: headers.index(name) for name in REQUIRED_COLUMNS}
+    generar_documento = "documento" not in headers
+    index = {name: headers.index(name) for name in REQUIRED_COLUMNS if name in headers}
     parsed: list[dict] = []
     seen: dict[str, int] = {}
     data_rows = 0
 
-    for row_number, row in enumerate(row_iter, start=2):
-        values = {name: _cell(row, index[name]) for name in REQUIRED_COLUMNS}
+    for row_number, row in enumerate(row_iter, start=header_row_number + 1):
+        values = {name: _cell(row, index[name]) for name in index}
+        if generar_documento:
+            values["documento"] = _documento_desde_nombre(_text(values.get("nombre")))
         if _row_is_empty(values):
             continue
         data_rows += 1
@@ -232,12 +246,41 @@ def _parse_number(value) -> tuple[float | None, str | None]:
     return None, "texto"
 
 
+def _find_headers(row_iter) -> tuple[list[str] | None, int]:
+    for row_number, row in enumerate(row_iter, start=1):
+        if row_number > 15:
+            break
+        headers = [_canonical_header(cell) for cell in row]
+        recognized = [column for column in REQUIRED_COLUMNS if column in headers]
+        if len(recognized) >= 4:
+            return headers, row_number
+    return None, 0
+
+
+def _canonical_header(value) -> str:
+    normalized = _normalize_header(value)
+    return _HEADER_ALIASES.get(normalized, normalized)
+
+
+def _documento_desde_nombre(nombre: str) -> str | None:
+    if nombre == "":
+        return None
+    base = unicodedata.normalize("NFD", nombre.upper())
+    base = "".join(char for char in base if unicodedata.category(char) != "Mn" and char.isalnum())
+    code = ("AUTO" + base)[:32]
+    if len(code) < 4:
+        return None
+    return code
+
+
 def _normalize_header(value) -> str:
     if value is None:
         return ""
-    text = str(value).strip().lower().replace(" ", "_")
+    text = str(value).strip().lower()
     text = unicodedata.normalize("NFD", text)
-    return "".join(char for char in text if unicodedata.category(char) != "Mn")
+    text = "".join(char for char in text if unicodedata.category(char) != "Mn")
+    text = re.sub(r"[\s_]+", "_", text).strip("_")
+    return text
 
 
 def _cell(row, position: int):

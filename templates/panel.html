@@ -130,7 +130,7 @@
     <section class="tile side-card no-print">
         <p class="eyebrow">Fuente de datos</p>
         <h2>Cargar Excel</h2>
-        <p class="quiet">Si el archivo trae un documento que ya existe, se actualiza esa fila. No se crea otro estudiante.</p>
+        <p class="quiet">Si el archivo trae un documento que ya existe, se actualiza esa fila. No se crea otro estudiante. Si no hay columna de documento, se usa el nombre para no duplicar.</p>
         {% with errors = get_flashed_messages(category_filter=['import_error']) %}
           {% if errors %}
             <div class="banner banner-error" role="alert">
