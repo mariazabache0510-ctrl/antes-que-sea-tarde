@@ -15,8 +15,8 @@ if (story && motionOk) {
   });
 }
 
-document.querySelectorAll(".score-fill").forEach((bar) => {
-  bar.style.setProperty("--score", bar.dataset.score || "0");
+document.querySelectorAll(".score-fill, .program-fill").forEach((bar) => {
+  bar.style.setProperty("--score", bar.dataset.score || bar.dataset.share || "0");
 });
 
 document.querySelectorAll("[data-count]").forEach((node) => {
@@ -117,8 +117,9 @@ const chartNode = document.querySelector("#chart-data");
 if (chartNode && window.Chart) {
   const chart = JSON.parse(chartNode.textContent);
   const animation = motionOk ? { duration: 800 } : false;
+  window.Chart.defaults.font.family = "Manrope, sans-serif";
+  window.Chart.defaults.color = "#5c6778";
   const niveles = document.querySelector("#chart-niveles");
-  const programas = document.querySelector("#chart-programas");
   if (niveles) {
     new window.Chart(niveles, {
       type: "doughnut",
@@ -132,29 +133,12 @@ if (chartNode && window.Chart) {
       },
       options: {
         animation,
-        plugins: { legend: { position: "bottom" } },
         cutout: "62%",
-      },
-    });
-  }
-  if (programas) {
-    new window.Chart(programas, {
-      type: "bar",
-      data: {
-        labels: chart.programas.map((item) => item.nombre),
-        datasets: [{
-          data: chart.programas.map((item) => item.en_riesgo),
-          backgroundColor: "#004A93",
-          borderRadius: 8,
-        }],
-      },
-      options: {
-        animation,
-        indexAxis: "y",
-        plugins: { legend: { display: false } },
-        scales: {
-          x: { beginAtZero: true, ticks: { precision: 0 } },
-          y: { ticks: { font: { size: 11 } } },
+        plugins: {
+          legend: {
+            position: "bottom",
+            labels: { font: { family: "Manrope, sans-serif", size: 13 }, padding: 14 },
+          },
         },
       },
     });

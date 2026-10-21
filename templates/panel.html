@@ -193,7 +193,18 @@
       {% if students %}
         <section class="tile tile-span side-card">
           <h2>En riesgo por programa</h2>
-          <div class="chart-box chart-box-wide"><canvas id="chart-programas" aria-label="Estudiantes en riesgo por programa"></canvas></div>
+          {% if chart.programas %}
+          {% set max_riesgo = chart.programas|map(attribute='en_riesgo')|max %}
+          <ul class="program-bars" aria-label="Estudiantes en riesgo por programa">
+            {% for item in chart.programas %}
+            <li>
+              <span class="program-name">{{ item.nombre }}</span>
+              <span class="program-count">{{ item.en_riesgo }}</span>
+              <span class="program-track" aria-hidden="true"><span class="program-fill" data-share="{{ ((item.en_riesgo * 100) / max_riesgo)|round|int if max_riesgo else 0 }}"></span></span>
+            </li>
+            {% endfor %}
+          </ul>
+          {% endif %}
         </section>
       {% endif %}
   </div>
