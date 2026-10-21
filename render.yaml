@@ -1,0 +1,30 @@
+databases:
+  - name: antes-db
+    databaseName: antes
+    user: antes
+    plan: free
+    region: oregon
+    postgresMajorVersion: "16"
+
+services:
+  - type: web
+    name: antes-que-sea-tarde
+    runtime: python
+    plan: free
+    region: oregon
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn --bind 0.0.0.0:$PORT --workers 1 --timeout 60 wsgi:app
+    healthCheckPath: /healthz
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.8"
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DEMO_USER
+        value: permanencia@uniminuto.local
+      - key: DEMO_PASSWORD
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: antes-db
+          property: connectionString

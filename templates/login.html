@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Ingresar · Antes que sea tarde{% endblock %}
+{% block body %}
+<main class="login-shell">
+  <section class="login-story" aria-label="De qué se trata">
+    <div class="radar" aria-hidden="true">
+      <span></span><span></span><span></span>
+    </div>
+    <p class="eyebrow">Permanencia estudiantil · MAIE</p>
+    <h1>Antes que sea tarde</h1>
+    <p class="lede">Una lectura temprana del Excel académico para que el acompañamiento llegue antes de la deserción.</p>
+    <ol class="steps">
+      <li><strong>Cargar</strong><span>El archivo es la única fuente. No se digitan estudiantes.</span></li>
+      <li><strong>Priorizar</strong><span>Cada caso recibe un puntaje visible y una acción concreta.</span></li>
+      <li><strong>Actuar</strong><span>El listado y el PDF quedan listos para la tutoría de esta semana.</span></li>
+    </ol>
+  </section>
+  <section class="login-panel">
+    <form class="login-card" method="post" novalidate>
+      {{ form.hidden_tag() }}
+      <p class="eyebrow">Acceso del personal</p>
+      <h2>Entrar al tablero</h2>
+      <p class="quiet">Solo Permanencia y docentes MAIE. No hay registro público.</p>
+      {% if error %}
+        <p class="banner banner-error" role="alert">{{ error }}</p>
+      {% endif %}
+      {% with messages = get_flashed_messages(category_filter=['error']) %}
+        {% for message in messages %}
+          <p class="banner banner-error" role="alert">{{ message }}</p>
+        {% endfor %}
+      {% endwith %}
+      <label class="field">
+        <span>Correo</span>
+        <input type="email" name="email" autocomplete="username" maxlength="120" required value="{{ form.email.data or '' }}">
+      </label>
+      <label class="field">
+        <span>Contraseña</span>
+        <input type="password" name="password" autocomplete="current-password" maxlength="200" required>
+      </label>
+      <button class="button button-primary" type="submit">Ingresar</button>
+    </form>
+  </section>
+</main>
+{% endblock %}

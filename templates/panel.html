@@ -1,0 +1,206 @@
+{% extends "base.html" %}
+{% block title %}Tablero · Antes que sea tarde{% endblock %}
+{% block body %}
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand" href="{{ url_for('main.panel') }}">
+      <img src="{{ url_for('static', filename='favicon.svg') }}" alt="" width="32" height="32">
+      <span>Antes que sea tarde</span>
+    </a>
+    <div class="topbar-actions no-print">
+      <p class="who">{{ current_user.nombre }}</p>
+      <a class="button button-ghost" href="{{ url_for('main.reporte') }}">Descargar PDF</a>
+      <form method="post" action="{{ url_for('main.salir') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button class="button button-quiet" type="submit">Cerrar sesión</button>
+      </form>
+    </div>
+  </div>
+</header>
+
+<main class="workspace">
+  <section class="hero">
+    <div>
+      <p class="eyebrow">Acompañamiento de hoy</p>
+      <h1>A quién ver primero</h1>
+      <p class="lede">El Excel académico entra, el sistema ordena el riesgo y deja una acción por estudiante.</p>
+    </div>
+    {% if ultima_carga %}
+      <p class="last-load">Última carga {{ ultima_carga }}</p>
+    {% endif %}
+  </section>
+
+  <section class="metrics" aria-label="Resumen">
+    <article class="metric">
+      <p>Registrados</p>
+      <strong data-count="{{ total }}">{{ total }}</strong>
+      <span>En la base, sin duplicar documento</span>
+    </article>
+    <article class="metric metric-alert">
+      <p>En riesgo</p>
+      <strong data-count="{{ en_riesgo|length }}">{{ en_riesgo|length }}</strong>
+      <span>{{ resumen_riesgo }}</span>
+    </article>
+    <article class="metric">
+      <p>Sin riesgo activo</p>
+      <strong data-count="{{ sin_riesgo|length }}">{{ sin_riesgo|length }}</strong>
+      <span>Seguimiento ordinario del periodo</span>
+    </article>
+  </section>
+
+  <div class="layout">
+    <section class="list-card" aria-labelledby="lista-titulo">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">Listado priorizado</p>
+          <h2 id="lista-titulo">Intervención sugerida</h2>
+        </div>
+        {% if students %}
+        <label class="search no-print">
+          <span class="visually-hidden">Buscar estudiante</span>
+          <input id="buscar" type="search" placeholder="Buscar por nombre, programa o documento" autocomplete="off">
+        </label>
+        {% endif %}
+      </div>
+      {% if students %}
+      <div class="chips no-print" role="toolbar" aria-label="Filtrar por nivel">
+        <button type="button" class="chip" data-filter="riesgo" aria-pressed="true">En riesgo</button>
+        <button type="button" class="chip" data-filter="todos" aria-pressed="false">Todos</button>
+        <button type="button" class="chip" data-filter="Crítico" aria-pressed="false">Crítico</button>
+        <button type="button" class="chip" data-filter="Alto" aria-pressed="false">Alto</button>
+        <button type="button" class="chip" data-filter="Medio" aria-pressed="false">Medio</button>
+        <button type="button" class="chip" data-filter="Bajo" aria-pressed="false">Bajo</button>
+      </div>
+      {% set tones = {'Bajo': 'bajo', 'Medio': 'medio', 'Alto': 'alto', 'Crítico': 'critico'} %}
+        <div class="table-scroll">
+          <table>
+            <caption class="visually-hidden">Estudiantes ordenados por puntaje de riesgo</caption>
+            <thead>
+              <tr>
+                <th scope="col">#</th>
+                <th scope="col">Estudiante</th>
+                <th scope="col">Programa</th>
+                <th scope="col">Sem.</th>
+                <th scope="col">Prom.</th>
+                <th scope="col">Nivel</th>
+                <th scope="col">Puntaje</th>
+                <th scope="col">Acción</th>
+              </tr>
+            </thead>
+            <tbody id="student-rows">
+              {% for student in students %}
+                <tr
+                  data-student
+                  data-nivel="{{ student.risk_level }}"
+                  data-risk="{{ 1 if student.risk_level in ['Medio', 'Alto', 'Crítico'] else 0 }}"
+                  data-blob="{{ (student.nombre ~ ' ' ~ student.documento ~ ' ' ~ student.programa)|lower }}"
+                >
+                  <td class="rank" data-rank></td>
+                  <td>
+                    <span class="student-name">{{ student.nombre }}</span>
+                    <span class="student-doc">{{ student.documento }}</span>
+                  </td>
+                  <td>{{ student.programa }}</td>
+                  <td>{{ student.semestre }}</td>
+                  <td>{{ student.promedio|nota }}</td>
+                  <td><span class="pill pill-{{ tones[student.risk_level] }}">{{ student.risk_level }}</span></td>
+                  <td>
+                    <span class="score">
+                      <span class="score-track" aria-hidden="true"><span class="score-fill" data-score="{{ student.risk_score }}"></span></span>
+                      <span>{{ student.risk_score }}</span>
+                    </span>
+                  </td>
+                  <td class="action">{{ student.accion }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        <p id="empty-filter" class="empty-filter" hidden>Ningún estudiante coincide con ese filtro.</p>
+      {% else %}
+        <div class="empty">
+          <p class="eyebrow">Todavía vacío</p>
+          <h3>La única puerta de entrada es el Excel</h3>
+          <p>Cuando cargues la plantilla vas a ver aquí el orden de acompañamiento, del puntaje más alto al más bajo.</p>
+        </div>
+      {% endif %}
+    </section>
+
+    <aside class="side">
+      <section class="side-card no-print">
+        <p class="eyebrow">Fuente de datos</p>
+        <h2>Cargar Excel</h2>
+        <p class="quiet">Si el archivo trae un documento que ya existe, se actualiza esa fila. No se crea otro estudiante.</p>
+        {% with errors = get_flashed_messages(category_filter=['import_error']) %}
+          {% if errors %}
+            <div class="banner banner-error" role="alert">
+              <p>No se importó nada. Corrige el archivo:</p>
+              <ul>
+                {% for message in errors %}
+                  <li>{{ message }}</li>
+                {% endfor %}
+              </ul>
+            </div>
+          {% endif %}
+        {% endwith %}
+        {% with oks = get_flashed_messages(category_filter=['ok']) %}
+          {% for message in oks %}
+            <p class="banner banner-ok" role="status">{{ message }}</p>
+          {% endfor %}
+        {% endwith %}
+        <form id="upload-form" method="post" action="{{ url_for('main.cargar') }}" enctype="multipart/form-data">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <label class="dropzone" id="dropzone">
+            <input id="archivo" type="file" name="archivo" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" required>
+            <span class="dropzone-title">Suelta el .xlsx aquí</span>
+            <span class="dropzone-hint">o haz clic para elegirlo. Máximo 2 MB y 2000 filas.</span>
+            <span class="dropzone-file" id="file-name" hidden></span>
+          </label>
+          <button class="button button-primary" type="submit">Actualizar tablero</button>
+        </form>
+        <a class="text-link" href="{{ url_for('main.plantilla') }}">Descargar plantilla de ejemplo</a>
+        <ul class="columns">
+          <li>documento</li>
+          <li>nombre</li>
+          <li>programa</li>
+          <li>semestre</li>
+          <li>promedio</li>
+          <li>materias_perdidas</li>
+          <li>inasistencias</li>
+          <li>evaluaciones_no_presentadas</li>
+        </ul>
+      </section>
+
+      {% if students %}
+        <section class="side-card">
+          <p class="eyebrow">Distribución</p>
+          <h2>Niveles</h2>
+          <div class="chart-box"><canvas id="chart-niveles" aria-label="Estudiantes por nivel de riesgo"></canvas></div>
+        </section>
+        <section class="side-card">
+          <h2>En riesgo por programa</h2>
+          <div class="chart-box chart-box-tall"><canvas id="chart-programas" aria-label="Estudiantes en riesgo por programa"></canvas></div>
+        </section>
+      {% endif %}
+
+      <section class="side-card rules">
+        <p class="eyebrow">Reglas visibles</p>
+        <h2>Cómo se calcula</h2>
+        <dl>
+          <div><dt>0–24 Bajo</dt><dd>Seguimiento ordinario del periodo.</dd></div>
+          <div><dt>25–49 Medio</dt><dd>Tutoría y contacto del docente MAIE esta semana.</dd></div>
+          <div><dt>50–74 Alto</dt><dd>Cita de acompañamiento y revisión de materias perdidas.</dd></div>
+          <div><dt>75–100 Crítico</dt><dd>Intervención inmediata de Permanencia Estudiantil.</dd></div>
+        </dl>
+        <p class="quiet">El promedio por debajo de 3,0 pesa más que el resto. Cada indicador tiene un tope para que un solo dato no distorsione el caso.</p>
+      </section>
+    </aside>
+  </div>
+</main>
+{% endblock %}
+{% block scripts %}
+{% if students %}
+  <script id="chart-data" type="application/json">{{ chart|tojson }}</script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.6/dist/chart.umd.min.js" defer></script>
+{% endif %}
+{% endblock %}
