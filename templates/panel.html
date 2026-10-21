@@ -48,8 +48,8 @@
     </article>
   </section>
 
-  <div class="layout">
-    <section class="list-card" aria-labelledby="lista-titulo">
+  <div class="board">
+    <section class="tile list-card{% if students %} tile-span{% endif %}" aria-labelledby="lista-titulo">
       <div class="section-head">
         <div>
           <p class="eyebrow">Listado priorizado</p>
@@ -119,6 +119,7 @@
         <p id="empty-filter" class="empty-filter" hidden>Ningún estudiante coincide con ese filtro.</p>
       {% else %}
         <div class="empty">
+          <div class="empty-mark" aria-hidden="true"><span></span><span></span><span></span></div>
           <p class="eyebrow">Todavía vacío</p>
           <h3>La única puerta de entrada es el Excel</h3>
           <p>Cuando cargues la plantilla vas a ver aquí el orden de acompañamiento, del puntaje más alto al más bajo.</p>
@@ -126,8 +127,7 @@
       {% endif %}
     </section>
 
-    <aside class="side">
-      <section class="side-card no-print">
+    <section class="tile side-card no-print">
         <p class="eyebrow">Fuente de datos</p>
         <h2>Cargar Excel</h2>
         <p class="quiet">Si el archivo trae un documento que ya existe, se actualiza esa fila. No se crea otro estudiante.</p>
@@ -172,18 +172,14 @@
       </section>
 
       {% if students %}
-        <section class="side-card">
+        <section class="tile side-card">
           <p class="eyebrow">Distribución</p>
           <h2>Niveles</h2>
           <div class="chart-box"><canvas id="chart-niveles" aria-label="Estudiantes por nivel de riesgo"></canvas></div>
         </section>
-        <section class="side-card">
-          <h2>En riesgo por programa</h2>
-          <div class="chart-box chart-box-tall"><canvas id="chart-programas" aria-label="Estudiantes en riesgo por programa"></canvas></div>
-        </section>
       {% endif %}
 
-      <section class="side-card rules">
+      <section class="tile side-card rules">
         <p class="eyebrow">Reglas visibles</p>
         <h2>Cómo se calcula</h2>
         <dl>
@@ -194,7 +190,12 @@
         </dl>
         <p class="quiet">El promedio por debajo de 3,0 pesa más que el resto. Cada indicador tiene un tope para que un solo dato no distorsione el caso.</p>
       </section>
-    </aside>
+      {% if students %}
+        <section class="tile tile-span side-card">
+          <h2>En riesgo por programa</h2>
+          <div class="chart-box chart-box-wide"><canvas id="chart-programas" aria-label="Estudiantes en riesgo por programa"></canvas></div>
+        </section>
+      {% endif %}
   </div>
 </main>
 {% endblock %}

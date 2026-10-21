@@ -1,5 +1,20 @@
 const motionOk = !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
+const story = document.querySelector(".login-story");
+if (story && motionOk) {
+  story.addEventListener("pointermove", (event) => {
+    const rect = story.getBoundingClientRect();
+    const x = (event.clientX - rect.left) / rect.width - 0.5;
+    const y = (event.clientY - rect.top) / rect.height - 0.5;
+    story.style.setProperty("--mx", x.toFixed(3));
+    story.style.setProperty("--my", y.toFixed(3));
+  });
+  story.addEventListener("pointerleave", () => {
+    story.style.setProperty("--mx", "0");
+    story.style.setProperty("--my", "0");
+  });
+}
+
 document.querySelectorAll(".score-fill").forEach((bar) => {
   bar.style.setProperty("--score", bar.dataset.score || "0");
 });
@@ -111,7 +126,7 @@ if (chartNode && window.Chart) {
         labels: chart.labels,
         datasets: [{
           data: chart.niveles,
-          backgroundColor: ["#2f6f4e", "#a16207", "#c2410c", "#9f1239"],
+          backgroundColor: ["#004A93", "#FFD300", "#C45C26", "#9f1239"],
           borderWidth: 0,
         }],
       },
@@ -129,7 +144,7 @@ if (chartNode && window.Chart) {
         labels: chart.programas.map((item) => item.nombre),
         datasets: [{
           data: chart.programas.map((item) => item.en_riesgo),
-          backgroundColor: "#1b4332",
+          backgroundColor: "#004A93",
           borderRadius: 8,
         }],
       },
